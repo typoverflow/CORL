@@ -28,12 +28,11 @@ EXP_ADV_MAX = 100.0
 LOG_STD_MIN = -5.0
 LOG_STD_MAX = 2.0
 
-from UtilsRL.exp import select_free_cuda
 
 @dataclass
 class TrainConfig:
     # Experiment
-    device: str = select_free_cuda()
+    device: str = "cuda"
     env: str = "halfcheetah-medium-expert-v2"  # OpenAI gym environment name
     seed: int = 0  # Sets Gym, PyTorch and Numpy seeds
     eval_freq: int = int(5e3)  # How often (time steps) we evaluate
@@ -481,6 +480,7 @@ class ImplicitQLearning:
 def train(config: TrainConfig):
     from tqdm import trange
     from UtilsRL.logger import CompositeLogger
+    from UtilsRL.exp import select_free_cuda
     exp_name = "-".join([config.name, config.env] if config.name else [config.env])
     loggers_config = {
         "FileLogger": {"activate": True}, 
@@ -493,6 +493,7 @@ def train(config: TrainConfig):
         loggers_config
     )
     config.checkpoints_path = os.path.join(logger.log_path, "checkpoints")
+    config.device = str(select_free_cuda())
     
     env = gym.make(config.env)
 
