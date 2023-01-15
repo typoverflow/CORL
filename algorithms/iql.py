@@ -32,7 +32,7 @@ LOG_STD_MAX = 2.0
 @dataclass
 class TrainConfig:
     # Experiment
-    device: str = "cuda"
+    device: str = None
     env: str = "halfcheetah-medium-expert-v2"  # OpenAI gym environment name
     seed: int = 0  # Sets Gym, PyTorch and Numpy seeds
     eval_freq: int = int(5e3)  # How often (time steps) we evaluate
@@ -493,7 +493,8 @@ def train(config: TrainConfig):
         loggers_config
     )
     config.checkpoints_path = os.path.join(logger.log_path, "checkpoints")
-    config.device = str(select_free_cuda())
+    if config.device is None:
+        config.device = str(select_free_cuda())
     
     env = gym.make(config.env)
 
