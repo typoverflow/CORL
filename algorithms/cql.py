@@ -19,13 +19,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import wandb
 
+from utils.eval import eval_actor
+
 TensorBatch = List[torch.Tensor]
 
 
 @dataclass
 class TrainConfig:
     # Experiment
-    device: str = "cuda"
+    device: str = None
     env: str = "halfcheetah-medium-expert-v2"  # OpenAI gym environment name
     seed: int = 0  # Sets Gym, PyTorch and Numpy seeds
     eval_freq: int = int(5e3)  # How often (time steps) we evaluate
@@ -58,14 +60,9 @@ class TrainConfig:
     normalize: bool = True  # Normalize states
     normalize_reward: bool = False  # Normalize reward
     # Wandb logging
-    project: str = "CORL"
-    group: str = "CQL-D4RL"
-    name: str = "CQL"
-
-    def __post_init__(self):
-        self.name = f"{self.name}-{self.env}-{str(uuid.uuid4())[:8]}"
-        if self.checkpoints_path is not None:
-            self.checkpoints_path = os.path.join(self.checkpoints_path, self.name)
+    project: str = None
+    entity: str = None
+    name: str = None
 
 
 def soft_update(target: nn.Module, source: nn.Module, tau: float):
@@ -189,26 +186,6 @@ def wandb_init(config: dict) -> None:
         id=str(uuid.uuid4()),
     )
     wandb.run.save()
-
-
-@torch.no_grad()
-def eval_actor(
-    env: gym.Env, actor: nn.Module, device: str, n_episodes: int, seed: int
-) -> np.ndarray:
-    env.seed(seed)
-    actor.eval()
-    episode_rewards = []
-    for _ in range(n_episodes):
-        state, done = env.reset(), False
-        episode_reward = 0.0
-        while not done:
-            action = actor.act(state, device)
-            state, reward, done, _ = env.step(action)
-            episode_reward += reward
-        episode_rewards.append(episode_reward)
-
-    actor.train()
-    return np.asarray(episode_rewards)
 
 
 def return_reward_range(dataset, max_episode_steps):
@@ -807,6 +784,23 @@ class ContinuousCQL:
 
 @pyrallis.wrap()
 def train(config: TrainConfig):
+    from tqdm import trange
+    from UtilsRL.logger import CompositeLogger
+    from UtilsRL.exp import select_free_cuda
+    exp_name = "-".join([config.name, config.env] if config.name else [config.env])
+    loggers_config = {
+        "FileLogger": {"activate": True}, 
+        "TensorboardLogger": {"activate": True}, 
+        "WandbLogger": {"activate": True, "project": config.project, "entity": config.entity, "config": asdict(config)}
+    }
+    logger = CompositeLogger(
+        os.path.join("./log", "cql", config.env), 
+        exp_name, 
+        loggers_config
+    )
+    config.checkpoints_path = os.path.join(logger.log_path, "checkpoints")
+    if config.device is None:
+        config.device = str(select_free_cuda())
     env = gym.make(config.env)
 
     state_dim = env.observation_space.shape[0]
@@ -905,41 +899,42 @@ def train(config: TrainConfig):
         trainer.load_state_dict(torch.load(policy_file))
         actor = trainer.actor
 
-    wandb_init(asdict(config))
+    # wandb_init(asdict(config))
 
     evaluations = []
-    for t in range(int(config.max_timesteps)):
+    for t in trange(int(config.max_timesteps)):
         batch = replay_buffer.sample(config.batch_size)
         batch = [b.to(config.device) for b in batch]
         log_dict = trainer.train(batch)
-        wandb.log(log_dict, step=trainer.total_it)
+        # wandb.log(log_dict, step=trainer.total_it)
+        logger.log_scalars("train", log_dict, step=trainer.total_it)
         # Evaluate episode
         if (t + 1) % config.eval_freq == 0:
             print(f"Time steps: {t + 1}")
-            eval_scores = eval_actor(
+            eval_dict = eval_actor(
                 env,
                 actor,
                 device=config.device,
                 n_episodes=config.n_episodes,
                 seed=config.seed,
             )
-            eval_score = eval_scores.mean()
-            normalized_eval_score = env.get_normalized_score(eval_score) * 100.0
-            evaluations.append(normalized_eval_score)
+            eval_score = eval_dict["normalized_score_mean"]
+            evaluations.append(eval_score)
             print("---------------------------------------")
             print(
-                f"Evaluation over {config.n_episodes} episodes: "
-                f"{eval_score:.3f} , D4RL score: {normalized_eval_score:.3f}"
+                f"Evaluation over {config.n_episodes} episodes: {eval_score:.3f}"
             )
             print("---------------------------------------")
-            torch.save(
-                trainer.state_dict(),
-                os.path.join(config.checkpoints_path, f"checkpoint_{t}.pt"),
-            )
-            wandb.log(
-                {"d4rl_normalized_score": normalized_eval_score},
-                step=trainer.total_it,
-            )
+            if config.checkpoints_path is not None:
+                torch.save(
+                    trainer.state_dict(),
+                    os.path.join(config.checkpoints_path, f"checkpoint_{t+1}.pt"),
+                )
+            # wandb.log(
+                # {"d4rl_normalized_score": normalized_eval_score},
+                # step=trainer.total_it,
+            # )
+            logger.log_scalars("eval", eval_dict, step=trainer.total_it)
 
 
 if __name__ == "__main__":

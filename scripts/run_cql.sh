@@ -5,7 +5,7 @@ seed=$3
 rest_args=("${all_args[@]:3}")
 
 source scripts/config.sh
-project="IQL-"$phase
+project="CQL-"$phase
 
 if [ $task == "all" ]; then
     tasks=( "halfcheetah" "hopper" "walker2d")
@@ -21,7 +21,7 @@ fi
 
 for t in ${tasks[@]}; do
     for q in ${qualities[@]}; do
-        echo python3 algorithms/iql.py --env $t-$q-v2 --seed $seed --project $project --entity $entity ${rest_args[@]} --config_path=configs/iql/$t/${q/'-'/'_'}_v2.yaml
-        python3 algorithms/iql.py --env $t-$q-v2 --seed $seed --project $project --entity $entity ${rest_args[@]} --config_path=configs/iql/$t/${q/'-'/'_'}_v2.yaml
+        echo python3 algorithms/cql.py --env $t-$q-v2 --seed $seed --project $project --entity $entity ${rest_args[@]} --config_path=configs/cql/$t/${q/'-'/'_'}_v2.yaml
+        python3 algorithms/cql.py --env $t-$q-v2 --seed $seed --project $project --entity $entity ${rest_args[@]} --config_path=configs/cql/$t/${q/'-'/'_'}_v2.yaml
     done
 done
