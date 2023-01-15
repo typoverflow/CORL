@@ -55,10 +55,10 @@ class TrainConfig:
     entity: str = None
     name: str=None
 
-    def __post_init__(self):
-        self.name = f"{self.name}-{self.env}-{str(uuid.uuid4())[:8]}"
-        if self.checkpoints_path is not None:
-            self.checkpoints_path = os.path.join(self.checkpoints_path, self.name)
+    # def __post_init__(self):
+        # self.name = f"{self.name}-{self.env}-{str(uuid.uuid4())[:8]}"
+        # if self.checkpoints_path is not None:
+            # self.checkpoints_path = os.path.join(self.checkpoints_path, self.name)
 
 
 def soft_update(target: nn.Module, source: nn.Module, tau: float):
