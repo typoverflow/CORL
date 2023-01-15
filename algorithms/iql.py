@@ -28,11 +28,12 @@ EXP_ADV_MAX = 100.0
 LOG_STD_MIN = -5.0
 LOG_STD_MAX = 2.0
 
+from UtilsRL.exp import select_free_cuda
 
 @dataclass
 class TrainConfig:
     # Experiment
-    device: str = "cuda"
+    device: str = select_free_cuda()
     env: str = "halfcheetah-medium-expert-v2"  # OpenAI gym environment name
     seed: int = 0  # Sets Gym, PyTorch and Numpy seeds
     eval_freq: int = int(5e3)  # How often (time steps) we evaluate
