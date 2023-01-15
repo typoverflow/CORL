@@ -53,7 +53,8 @@ class TrainConfig:
     # Wandb logging
     project: str = None
     entity: str = None
-    name: str=None
+    name: str = None
+    group: str = None
 
     # def __post_init__(self):
         # self.name = f"{self.name}-{self.env}-{str(uuid.uuid4())[:8]}"

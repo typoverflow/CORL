@@ -63,6 +63,7 @@ class TrainConfig:
     project: str = None
     entity: str = None
     name: str = None
+    group: str = None
 
 
 def soft_update(target: nn.Module, source: nn.Module, tau: float):
