@@ -21,7 +21,7 @@ fi
 
 for t in ${tasks[@]}; do
     for q in ${qualities[@]}; do
-        echo python3 algorithms/iql.py --env $t-$q-v2 --seed $seed --project $project --entity $entity
-        python3 algorithms/iql.py --env $t-$q-v2 --seed $seed --project $project --entity $entity
+        echo python3 algorithms/iql.py --env $t-$q-v2 --seed $seed --project $project --entity $entity ${rest_args[@]}
+        python3 algorithms/iql.py --env $t-$q-v2 --seed $seed --project $project --entity $entity ${rest_args[@]}
     done
 done
