@@ -21,7 +21,7 @@ fi
 
 for t in ${tasks[@]}; do
     for q in ${qualities[@]}; do
-        echo python3 algorithms/cql.py --env $t-$q-v2 --seed $seed --project $project --entity $entity ${rest_args[@]} --config_path=configs/cql/$t/${q/'-'/'_'}_v2.yaml
-        python3 algorithms/cql.py --env $t-$q-v2 --seed $seed --project $project --entity $entity ${rest_args[@]} --config_path=configs/cql/$t/${q/'-'/'_'}_v2.yaml
+        echo python3 algorithms/cql.py --config_path=configs/cql/$t/${q/'-'/'_'}_v2.yaml --seed $seed --project $project --entity $entity ${rest_args[@]}
+        python3 algorithms/cql.py --config_path=configs/cql/$t/${q/'-'/'_'}_v2.yaml --seed $seed --project $project --entity $entity ${rest_args[@]}
     done
 done
