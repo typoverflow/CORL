@@ -587,9 +587,10 @@ def train(config: TrainConfig):
         batch = [b.to(config.device) for b in batch]
         log_dict = trainer.train(batch)
         # wandb.log(log_dict, step=trainer.total_it)
-        logger.log_scalars("train", log_dict, step=trainer.total_it)
+        # logger.log_scalars("train", log_dict, step=trainer.total_it)
         # Evaluate episode
         if (t + 1) % config.eval_freq == 0:
+            logger.log_scalars("train", log_dict, step=trainer.total_it)
             print(f"Time steps: {t + 1}")
             eval_dict = eval_actor(
                 env,
