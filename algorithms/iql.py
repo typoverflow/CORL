@@ -494,7 +494,7 @@ def train(config: TrainConfig):
         loggers_config
     )
     config.checkpoints_path = os.path.join(logger.log_path, "checkpoints")
-    if config.device is None:
+    if config.device is None or config.device == "cuda":
         config.device = str(select_free_cuda())
     
     env = gym.make(config.env)
