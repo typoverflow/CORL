@@ -371,20 +371,20 @@ def train(config: TrainConfig):
     from tqdm import trange
     from UtilsRL.logger import CompositeLogger
     from UtilsRL.exp import select_free_cuda
-    exp_name = "-".join([config.name, config.env] if config.name else [config.env])
-    loggers_config = {
-        "FileLogger": {"activate": True}, 
-        "TensorboardLogger": {"activate": True}, 
-        "WandbLogger": {"activate": True, "project": config.project, "entity": config.entity, "config": asdict(config)}
-    }
-    logger = CompositeLogger(
-        os.path.join("./log", "td3_bc", config.env), 
-        exp_name, 
-        loggers_config
-    )
-    config.checkpoints_path = os.path.join(logger.log_path, "checkpoints")
-    if config.device is None:
-        config.device = str(select_free_cuda())
+    # exp_name = "-".join([config.name, config.env] if config.name else [config.env])
+    # loggers_config = {
+    #     "FileLogger": {"activate": True}, 
+    #     "TensorboardLogger": {"activate": True}, 
+    #     "WandbLogger": {"activate": True, "project": config.project, "entity": config.entity, "config": asdict(config)}
+    # }
+    # logger = CompositeLogger(
+    #     os.path.join("./log", "td3_bc", config.env), 
+    #     exp_name, 
+    #     loggers_config
+    # )
+    # config.checkpoints_path = os.path.join(logger.log_path, "checkpoints")
+    # if config.device is None:
+    #     config.device = str(select_free_cuda())
     env = gym.make(config.env)
 
     state_dim = env.observation_space.shape[0]
@@ -454,55 +454,60 @@ def train(config: TrainConfig):
         "alpha": config.alpha,
     }
 
-    print("---------------------------------------")
-    print(f"Training TD3 + BC, Env: {config.env}, Seed: {seed}")
-    print("---------------------------------------")
-
     # Initialize actor
     trainer = TD3_BC(**kwargs)
 
-    if config.load_model != "":
-        policy_file = Path(config.load_model)
-        trainer.load_state_dict(torch.load(policy_file))
-        actor = trainer.actor
+    from utils.test import test_one_actor
+    algos = ["td3_bc"]
+    for algo in algos:
+        for run in os.listdir(f"./log/{algo}/{config.env}"):
+            ckpt = os.path.join("./log", algo, config.env, run, "checkpoints", "checkpoint_1000000.pt")
+            print(f"============ {config.env} =============")
+            test_one_actor(trainer, ckpt, env)
+            break # 只跑一个
 
-    # wandb_init(asdict(config))
+    # if config.load_model != "":
+    #     policy_file = Path(config.load_model)
+    #     trainer.load_state_dict(torch.load(policy_file))
+    #     actor = trainer.actor
 
-    evaluations = []
-    for t in trange(int(config.max_timesteps)):
-        batch = replay_buffer.sample(config.batch_size)
-        batch = [b.to(config.device) for b in batch]
-        log_dict = trainer.train(batch)
-        # wandb.log(log_dict, step=trainer.total_it)
-        # Evaluate episode
-        if (t + 1) % config.eval_freq == 0:
-            logger.log_scalars("train", log_dict, step=trainer.total_it)
-            print(f"Time steps: {t + 1}")
-            eval_dict = eval_actor(
-                env,
-                actor,
-                device=config.device,
-                n_episodes=config.n_episodes,
-                seed=config.seed,
-            )
-            eval_score = eval_dict["normalized_score_mean"]
-            evaluations.append(eval_score)
-            print("---------------------------------------")
-            print(
-                f"Evaluation over {config.n_episodes} episodes: {eval_score:.3f}"
-            )
-            print("---------------------------------------")
+    # # wandb_init(asdict(config))
+
+    # evaluations = []
+    # for t in trange(int(config.max_timesteps)):
+    #     batch = replay_buffer.sample(config.batch_size)
+    #     batch = [b.to(config.device) for b in batch]
+    #     log_dict = trainer.train(batch)
+    #     # wandb.log(log_dict, step=trainer.total_it)
+    #     # Evaluate episode
+    #     if (t + 1) % config.eval_freq == 0:
+    #         logger.log_scalars("train", log_dict, step=trainer.total_it)
+    #         print(f"Time steps: {t + 1}")
+    #         eval_dict = eval_actor(
+    #             env,
+    #             actor,
+    #             device=config.device,
+    #             n_episodes=config.n_episodes,
+    #             seed=config.seed,
+    #         )
+    #         eval_score = eval_dict["normalized_score_mean"]
+    #         evaluations.append(eval_score)
+    #         print("---------------------------------------")
+    #         print(
+    #             f"Evaluation over {config.n_episodes} episodes: {eval_score:.3f}"
+    #         )
+    #         print("---------------------------------------")
             
-            if config.checkpoints_path is not None:
-                torch.save(
-                    trainer.state_dict(),
-                    os.path.join(config.checkpoints_path, f"checkpoint_{t+1}.pt"),
-                )
-            # wandb.log(
-                # {"d4rl_normalized_score": normalized_eval_score},
-                # step=trainer.total_it,
-            # )
-            logger.log_scalars("eval", eval_dict, step=trainer.total_it)
+    #         if config.checkpoints_path is not None:
+    #             torch.save(
+    #                 trainer.state_dict(),
+    #                 os.path.join(config.checkpoints_path, f"checkpoint_{t+1}.pt"),
+    #             )
+    #         # wandb.log(
+    #             # {"d4rl_normalized_score": normalized_eval_score},
+    #             # step=trainer.total_it,
+    #         # )
+    #         logger.log_scalars("eval", eval_dict, step=trainer.total_it)
 
 
 if __name__ == "__main__":

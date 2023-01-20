@@ -9,6 +9,7 @@ def eval_actor(
 ) -> np.ndarray:
     env.seed(seed)
     actor.eval()
+    actor.to(device)
     episode_lengths = []
     episode_rewards = []
     for _ in range(n_episodes):
