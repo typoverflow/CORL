@@ -65,6 +65,8 @@ class TrainConfig:
     name: str = None
     group: str = None
 
+    data_limit = None
+
 
 def soft_update(target: nn.Module, source: nn.Module, tau: float):
     for target_param, source_param in zip(target.parameters(), source.parameters()):
@@ -132,19 +134,21 @@ class ReplayBuffer:
         return torch.tensor(data, dtype=torch.float32, device=self._device)
 
     # Loads data in d4rl format, i.e. from Dict[str, np.array].
-    def load_d4rl_dataset(self, data: Dict[str, np.ndarray]):
+    def load_d4rl_dataset(self, data: Dict[str, np.ndarray], data_limit=None):
+        if data_limit is None:
+            data_limit = int(1e10)
         if self._size != 0:
             raise ValueError("Trying to load data into non-empty replay buffer")
-        n_transitions = data["observations"].shape[0]
+        n_transitions = min(data["observations"].shape[0], data_limit)
         if n_transitions > self._buffer_size:
             raise ValueError(
                 "Replay buffer is smaller than the dataset you are trying to load!"
             )
-        self._states[:n_transitions] = self._to_tensor(data["observations"])
-        self._actions[:n_transitions] = self._to_tensor(data["actions"])
-        self._rewards[:n_transitions] = self._to_tensor(data["rewards"][..., None])
-        self._next_states[:n_transitions] = self._to_tensor(data["next_observations"])
-        self._dones[:n_transitions] = self._to_tensor(data["terminals"][..., None])
+        self._states[:n_transitions] = self._to_tensor(data["observations"])[:n_transitions]
+        self._actions[:n_transitions] = self._to_tensor(data["actions"])[:n_transitions]
+        self._rewards[:n_transitions] = self._to_tensor(data["rewards"][..., None])[:n_transitions]
+        self._next_states[:n_transitions] = self._to_tensor(data["next_observations"])[:n_transitions]
+        self._dones[:n_transitions] = self._to_tensor(data["terminals"][..., None])[:n_transitions]
         self._size += n_transitions
         self._pointer = min(self._size, n_transitions)
 
@@ -830,7 +834,7 @@ def train(config: TrainConfig):
         config.buffer_size,
         config.device,
     )
-    replay_buffer.load_d4rl_dataset(dataset)
+    replay_buffer.load_d4rl_dataset(dataset, config.data_limit)
 
     max_action = float(env.action_space.high[0])
 
