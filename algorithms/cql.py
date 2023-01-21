@@ -65,7 +65,7 @@ class TrainConfig:
     name: str = None
     group: str = None
 
-    data_limit = None
+    data_limit: int = None
 
 
 def soft_update(target: nn.Module, source: nn.Module, tau: float):
