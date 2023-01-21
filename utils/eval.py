@@ -5,7 +5,7 @@ import gym
 
 @torch.no_grad()
 def eval_actor(
-    env: gym.Env, actor: nn.Module, device: str, n_episodes: int, seed: int, raw_env
+    env: gym.Env, actor: nn.Module, device: str, n_episodes: int, seed: int, raw_env=None
 ) -> np.ndarray:
     if raw_env is None:
         raw_env = env
