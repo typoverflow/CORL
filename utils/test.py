@@ -45,9 +45,11 @@ def test_one_actor(trainer, path, env):
     }
     for perturb_type in ["gravity", "dof_damping"]:
         for perturb_amp in amp_range[perturb_type]:
+            # print(f"env: {env.unwrapped.model.opt.gravity}")
             perturb_env = copy.deepcopy(env)
-            perturb_env = MujocoParamOverWrite(env, {perturb_type: perturb_amp}, do_scale=True)
-            eval_dict = eval_actor(perturb_env, trainer.actor, device="cuda", n_episodes=10, seed=0)
+            perturb_env = MujocoParamOverWrite(perturb_env, {perturb_type: perturb_amp}, do_scale=True)
+            # print(f"penv: {env.unwrapped.model.opt.gravity}")
+            eval_dict = eval_actor(perturb_env, trainer.actor, device="cuda", n_episodes=10, seed=0, raw_env=env)
             print(f"{perturb_type}\t{perturb_amp}: {eval_dict['normalized_score_mean']}")
 
 if __name__ == "__main__":
