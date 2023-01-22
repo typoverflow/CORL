@@ -5,10 +5,10 @@ import gym
 
 @torch.no_grad()
 def eval_actor(
-    env: gym.Env, actor: nn.Module, device: str, n_episodes: int, seed: int, raw_env
+    env: gym.Env, actor: nn.Module, device: str, n_episodes: int, seed: int, score_func=None
 ) -> np.ndarray:
-    if raw_env is None:
-        raw_env = env
+    if score_func is None:
+        score_func = env.get_normalized_score
     env.seed(seed)
     actor.eval()
     actor.to(device)
@@ -23,7 +23,7 @@ def eval_actor(
             state, reward, done, _ = env.step(action)
             episode_reward += reward
             episode_length += 1
-        episode_rewards.append(raw_env.get_normalized_score(episode_reward)*100)
+        episode_rewards.append(score_func(episode_reward)*100)
         episode_lengths.append(episode_length)
 
     actor.train()
