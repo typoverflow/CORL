@@ -570,57 +570,25 @@ def train(config: TrainConfig):
     # Initialize actor
     trainer = ImplicitQLearning(**kwargs)
 
-    from utils.test import test_one_actor
+    from utils.test import test_actors
+    from UtilsRL.logger import CompositeLogger
+    loggers_config = {
+        "WandbLogger": {"project": "D2MG-transfer", "entity": "gaochenxiao", "config": config}
+    }
+    logger = CompositeLogger("./log_transfer", "-".join(["iql", config.env]), loggers_config=loggers_config)
     algos = ["iql"]
     for algo in algos:
-        for run in os.listdir(f"./log/{algo}/{config.env}"):
-            ckpt = os.path.join("./log", algo, config.env, run, "checkpoints", "checkpoint_1000000.pt")
-            print(f"============ {config.env} =============")
-            test_one_actor(trainer, ckpt, env)
-            break # 只跑一个
-
-    # if config.load_model != "":
-    #     policy_file = Path(config.load_model)
-    #     trainer.load_state_dict(torch.load(policy_file))
-    #     actor = trainer.actor
-
-    # # wandb_init(asdict(config))
-
-    # evaluations = []
-    # for t in trange(int(config.max_timesteps)):
-    #     batch = replay_buffer.sample(config.batch_size)
-    #     batch = [b.to(config.device) for b in batch]
-    #     log_dict = trainer.train(batch)
-    #     # wandb.log(log_dict, step=trainer.total_it)
-    #     # logger.log_scalars("train", log_dict, step=trainer.total_it)
-    #     # Evaluate episode
-    #     if (t + 1) % config.eval_freq == 0:
-    #         logger.log_scalars("train", log_dict, step=trainer.total_it)
-    #         print(f"Time steps: {t + 1}")
-    #         eval_dict = eval_actor(
-    #             env,
-    #             actor,
-    #             device=config.device,
-    #             n_episodes=config.n_episodes,
-    #             seed=config.seed,
-    #         )
-    #         eval_score = eval_dict["normalized_score_mean"]
-    #         evaluations.append(eval_score)
-    #         print("---------------------------------------")
-    #         print(
-    #             f"Evaluation over {config.n_episodes} episodes: {eval_score:.3f}"
-    #         )
-    #         print("---------------------------------------")
-    #         if config.checkpoints_path is not None:
-    #             torch.save(
-    #                 trainer.state_dict(),
-    #                 os.path.join(config.checkpoints_path, f"checkpoint_{t+1}.pt"),
-    #             )
-    #         # wandb.log(
-    #             # {"d4rl_normalized_score": normalized_eval_score}, step=trainer.total_it
-    #         # )
-    #         logger.log_scalars("eval", eval_dict, step=trainer.total_it)
-
+        runs = os.listdir(f"./log/{algo}/{config.env}")
+        logger.info(f"found {len(runs)} runs")
+        ckpts = [os.path.join("./log", algo, config.env, run, "checkpoints", "checkpoint_1000000.pt") for run in runs]
+        for perturb_type in ["gravity", "dof_damping"]:
+            for perturb_amp in [0.5, 0.8, 1.0, 1.2, 1.5]:
+                logger.info(f"transfer to {perturb_type}, {perturb_amp}")
+                performance = test_actors(trainer, ckpts, env, perturb_type, perturb_amp)
+                logger.log_scalars(perturb_type, {
+                    "normalized_score_mean": performance["normalized_score_mean"], 
+                    "perturb_amp": perturb_amp
+                })
 
 if __name__ == "__main__":
     train()
