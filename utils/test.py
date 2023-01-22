@@ -34,7 +34,7 @@ def test_actors(trainer, ckpts, raw_env, perturb_type, perturb_amp):
         this_eval_dict = eval_actor(perturb_env, trainer.actor, device="cuda", n_episodes=10, seed=0, score_func=raw_env.get_normalized_score)
         for _key, _value in this_eval_dict.items():
             eval_dict[_key] = eval_dict.get(_key, 0) + this_eval_dict[_key]
-    return {_key: _value/len(ckpts) for _key, _value in this_eval_dict.items()}
+    return {_key: _value/len(ckpts) for _key, _value in eval_dict.items()}
         
 
 def test_one_actor(trainer, path, env):

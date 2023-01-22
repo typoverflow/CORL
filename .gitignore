@@ -146,4 +146,4 @@ wandb
 assets/
 
 **/.vscode
-**/log
+**/log*
